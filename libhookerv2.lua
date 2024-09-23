@@ -37,43 +37,62 @@ local function hookexists(name)
     return false
 end
 
+-- Custom FindDecendants
+local function findfirstmodule(name)
+    local result = nil
+    local function recurse(path)
+        for i, v in pairs(path:GetChildren()) do
+            if v.ClassName == "ModuleScript" then
+                if v.Name == name then
+                    result = v
+                elseif #v:GetChildren() > 0 then
+                    recurse(v)
+                end
+            end
+        end
+    end
+    recurse(libDir)
+    if result == nil then warn("didnt find " .. name) end
+    return result
+end
+
 local function handleerror(err, hookname)
-    -- todo: fix
-    local win = require(libDir.ApplicationHandler).StartProcess("Default", {IconId = 6026568201})
-    local titleLabel = Instance.new("TextLabel", win.Main)
+    local Lime = require(libDir.Kernel.ExecutableHost.EnvTable)().Lime
+    local win = Lime.CreateWindow("LibHooker crash reporter")
+    local titleLabel = Lime.CreateUI("TextLabel", win)
     titleLabel.Size = UDim2.fromScale(1, 0.3)
     titleLabel.Text = "A LibHooker hook crashed! Hook name: " .. hookname
     titleLabel.TextScaled = true
     titleLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     titleLabel.BackgroundTransparency = 0.7
-    titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    local errLabel = Instance.new("TextLabel", win.Main)
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    local errLabel = Lime.CreateUI("TextLabel", win)
     errLabel.Size = UDim2.fromScale(1, 0.4)
     errLabel.Position = UDim2.fromScale(0, 0.3)
     errLabel.Text = err
     errLabel.TextScaled = true
     errLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     errLabel.BackgroundTransparency = 0.7
-    errLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    local okBtn = Instance.new("TextButton", win.Main)
+    errLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    local okBtn = Lime.CreateUI("TextButton", win)
     okBtn.Size = UDim2.fromScale(0.5, 0.3)
     okBtn.Position = UDim2.fromScale(0.5, 0.7)
     okBtn.Text = "I don't care"
     okBtn.TextScaled = true
     okBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     okBtn.BackgroundTransparency = 0.5
-    okBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    okBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     okBtn.MouseButton1Click:Connect(function()
         require(libDir.ApplicationHandler).ExitProcess(win.Value.Value)
     end)
-    local safemodeToggle = Instance.new("TextButton", win.Main)
+    local safemodeToggle = Lime.CreateUI("TextButton", win)
     safemodeToggle.Size = UDim2.fromScale(0.5, 0.3)
     safemodeToggle.Position = UDim2.fromScale(0, 0.7)
     safemodeToggle.Text = "Enable safe mode"
     safemodeToggle.TextScaled = true
     safemodeToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     safemodeToggle.BackgroundTransparency = 0.5
-    safemodeToggle.TextColor3 = Color3.fromRGB(255,255,255)
+    safemodeToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
     safemodeToggle.MouseButton1Click:Connect(function()
         safemode = true
         require(libDir.ApplicationHandler).ExitProcess(win.Value.Value)
@@ -81,7 +100,8 @@ local function handleerror(err, hookname)
 end
 
 local function registerhook(lib, funcname, old)
-    local libObj = libDir:FindFirstChild(lib,true)
+    print("NEW HOOK!!! " .. lib .. ": " .. funcname)
+    local libObj = findfirstmodule(lib)
     require(libObj)[funcname] = function(...)
         local args = {...}
         for _, v in pairs(hooks) do
@@ -90,7 +110,7 @@ local function registerhook(lib, funcname, old)
                     if v.hookedfunc == funcname and v.hookedlib == lib then
                         if not (v.isapp and args[1] ~= v.appname) then
                             local ret, err = pcall(v.hookfunc, ...)
-                            if not ret then
+                            if err then
                                 handleerror(err, funcname)
                             end
                         end
@@ -105,7 +125,7 @@ local function registerhook(lib, funcname, old)
                     if v.hookedfunc == funcname and v.hookedlib == lib then
                         if not (v.isapp and args[1] == v.appname) then
                             local ret, err = pcall(v.hookfunc, oldreturn, ...)
-                            if not ret then
+                            if err then
                                 handleerror(err, funcname)
                             end
                         end
@@ -128,41 +148,36 @@ local function checkinternalhook(lib, funcname)
         end
     end
     -- not allready hooked
-    registerhook(lib, funcname,
-                 require(libDir:FindFirstChild(lib, true))[funcname])
+    registerhook(lib, funcname, require(findfirstmodule(lib))[funcname])
 end
 
 function libhooker.hooklib(libtohook, functohook, hookname, hookfunc, after)
-    local libtohookobj = libDir:FindFirstChild(libtohook, true)
+    local libtohookobj = findfirstmodule(libtohook)
     if libtohookobj == nil then return 1 end
     if require(libtohookobj)[functohook] == nil then return 2 end
     if hookexists(hookname) then return 3 end
-    hooks[#hooks+1] = table.clone(hooktemplate)
-    local insertedhook = hooks[#hooks]
-    insertedhook.hookname = hookname
-    insertedhook.hookfunc = hookfunc
-    insertedhook.hookedlib = libtohook
-    insertedhook.hookedfunc = functohook
-    insertedhook.after = after
-    if insertedhook.after == nil then
-        insertedhook.after = false
-    end
+    local newhook = table.clone(hooktemplate)
+    newhook.hookname = hookname
+    newhook.hookfunc = hookfunc
+    newhook.hookedlib = libtohook
+    newhook.hookedfunc = functohook
+    newhook.after = after
+    if newhook.after == nil then newhook.after = false end
+    table.insert(hooks, newhook)
     checkinternalhook(libtohook, functohook)
 end
 
 function libhooker.hookapp(appname, hookname, hookfunc, after)
     if appname == nil then return 1 end
     if hookexists(hookname) then return 3 end
-    hooks[#hooks+1] = table.clone(hooktemplate)
+    hooks[#hooks + 1] = table.clone(hooktemplate)
     local insertedhook = hooks[#hooks]
     insertedhook.hookname = hookname
     insertedhook.hookfunc = hookfunc
     insertedhook.hookedlib = "ApplicationHandler"
     insertedhook.hookedfunc = "StartProcess"
     insertedhook.after = after
-    if insertedhook.after == nil then
-        insertedhook.after = false
-    end
+    if insertedhook.after == nil then insertedhook.after = false end
     insertedhook.isapp = true
     insertedhook.appname = appname
     checkinternalhook("ApplicationHandler", "StartProcess")
