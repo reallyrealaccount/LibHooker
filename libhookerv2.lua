@@ -11,7 +11,7 @@ end
 -- pointy
 local libhooker = krnl.libhooker
 local hooks = krnl.libhooker.hooks
-local safemode = krnl.libhooker.safemode
+--local safemode = krnl.libhooker.safemode
 local internalhooks = krnl.libhooker.internalhooks
 local internalfhooks = krnl.libhooker.internalfhooks
 
@@ -96,7 +96,7 @@ local function handleerror(err, hookname)
     safemodeToggle.BackgroundTransparency = 0.5
     safemodeToggle.TextColor3 = Color3.fromRGB(255,255,255)
     safemodeToggle.MouseButton1Click:Connect(function()
-        safemode = true
+        krnl.libhooker.safemode = true
         require(libDir.ApplicationHandler).ExitProcess(win.Value.Value)
     end)
 end
@@ -107,7 +107,7 @@ local function registerhook(lib, funcname, old)
     require(libObj)[funcname] = function(...)
         local args = {...}
         for _, v in pairs(hooks) do
-            if (not safemode) or v.hookname == "LibHooker Menu" then
+            if (not krnl.libhooker.safemode) or v.hookname == "LibHooker Menu" then
                 if not v.after then
                     if v.hookedfunc == funcname and v.hookedlib == lib then
                         if not (v.isapp and args[1] ~= v.appname) then
@@ -122,7 +122,7 @@ local function registerhook(lib, funcname, old)
         end
         local oldreturn = old(...)
         for _, v in pairs(hooks) do
-            if (not safemode) or v.hookname == "LibHooker Menu" then
+            if (not krnl.libhooker.safemode) or v.hookname == "LibHooker Menu" then
                 if v.after then
                     if v.hookedfunc == funcname and v.hookedlib == lib then
                         if not (v.isapp and args[1] ~= v.appname) then
@@ -215,7 +215,7 @@ libhooker.hookapp("Settings", "LibHooker Menu", function(win)
     -- Stuff on page
     local safemodestatus = Instance.new("TextLabel", page)
     safemodestatus.Size = UDim2.fromScale(0.5,0.5)
-    safemodestatus.Text = "Safe mode status: "..tostring(safemode)
+    safemodestatus.Text = "Safe mode status: "..tostring(krnl.libhooker.safemode)
     safemodestatus.TextScaled = true
 
     local safemodetoggle = Instance.new("TextButton", page)
@@ -225,8 +225,8 @@ libhooker.hookapp("Settings", "LibHooker Menu", function(win)
     safemodetoggle.TextScaled = true
 
     safemodetoggle.MouseButton1Click:Connect(function()
-        safemode = not safemode
-        safemodestatus.Text = "Safe mode status: "..tostring(safemode)
+        krnl.libhooker.safemode = not krnl.libhooker.safemode
+        safemodestatus.Text = "Safe mode status: "..tostring(krnl.libhooker.safemode)
     end)
 
     local hooksframe = Instance.new("ScrollingFrame", page)
