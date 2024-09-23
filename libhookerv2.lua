@@ -41,7 +41,7 @@ end
 local function findfirstmodule(name)
     local result = nil
     local function recurse(path)
-        for i, v in pairs(path:GetChildren()) do
+        for i,v in pairs(path:GetChildren()) do
             if v.ClassName == "ModuleScript" then
                 if v.Name == name then
                     result = v
@@ -52,7 +52,9 @@ local function findfirstmodule(name)
         end
     end
     recurse(libDir)
-    if result == nil then warn("didnt find " .. name) end
+    if result == nil then
+        warn("didnt find "..name)
+    end
     return result
 end
 
@@ -65,7 +67,7 @@ local function handleerror(err, hookname)
     titleLabel.TextScaled = true
     titleLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     titleLabel.BackgroundTransparency = 0.7
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
     local errLabel = Lime.CreateUI("TextLabel", win)
     errLabel.Size = UDim2.fromScale(1, 0.4)
     errLabel.Position = UDim2.fromScale(0, 0.3)
@@ -73,7 +75,7 @@ local function handleerror(err, hookname)
     errLabel.TextScaled = true
     errLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     errLabel.BackgroundTransparency = 0.7
-    errLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    errLabel.TextColor3 = Color3.fromRGB(255,255,255)
     local okBtn = Lime.CreateUI("TextButton", win)
     okBtn.Size = UDim2.fromScale(0.5, 0.3)
     okBtn.Position = UDim2.fromScale(0.5, 0.7)
@@ -81,7 +83,7 @@ local function handleerror(err, hookname)
     okBtn.TextScaled = true
     okBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     okBtn.BackgroundTransparency = 0.5
-    okBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    okBtn.TextColor3 = Color3.fromRGB(255,255,255)
     okBtn.MouseButton1Click:Connect(function()
         require(libDir.ApplicationHandler).ExitProcess(win.Value.Value)
     end)
@@ -92,7 +94,7 @@ local function handleerror(err, hookname)
     safemodeToggle.TextScaled = true
     safemodeToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     safemodeToggle.BackgroundTransparency = 0.5
-    safemodeToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    safemodeToggle.TextColor3 = Color3.fromRGB(255,255,255)
     safemodeToggle.MouseButton1Click:Connect(function()
         safemode = true
         require(libDir.ApplicationHandler).ExitProcess(win.Value.Value)
@@ -105,7 +107,7 @@ local function registerhook(lib, funcname, old)
     require(libObj)[funcname] = function(...)
         local args = {...}
         for _, v in pairs(hooks) do
-            if not safemode then
+            if (not safemode) or v.hookname == "LibHooker Menu" then
                 if not v.after then
                     if v.hookedfunc == funcname and v.hookedlib == lib then
                         if not (v.isapp and args[1] ~= v.appname) then
@@ -120,7 +122,7 @@ local function registerhook(lib, funcname, old)
         end
         local oldreturn = old(...)
         for _, v in pairs(hooks) do
-            if not safemode then
+            if (not safemode) or v.hookname == "LibHooker Menu" then
                 if v.after then
                     if v.hookedfunc == funcname and v.hookedlib == lib then
                         if not (v.isapp and args[1] ~= v.appname) then
@@ -148,7 +150,8 @@ local function checkinternalhook(lib, funcname)
         end
     end
     -- not allready hooked
-    registerhook(lib, funcname, require(findfirstmodule(lib))[funcname])
+    registerhook(lib, funcname,
+                 require(findfirstmodule(lib))[funcname])
 end
 
 function libhooker.hooklib(libtohook, functohook, hookname, hookfunc, after)
@@ -162,7 +165,9 @@ function libhooker.hooklib(libtohook, functohook, hookname, hookfunc, after)
     newhook.hookedlib = libtohook
     newhook.hookedfunc = functohook
     newhook.after = after
-    if newhook.after == nil then newhook.after = false end
+    if newhook.after == nil then
+        newhook.after = false
+    end
     table.insert(hooks, newhook)
     checkinternalhook(libtohook, functohook)
 end
@@ -170,14 +175,16 @@ end
 function libhooker.hookapp(appname, hookname, hookfunc, after)
     if appname == nil then return 1 end
     if hookexists(hookname) then return 3 end
-    hooks[#hooks + 1] = table.clone(hooktemplate)
+    hooks[#hooks+1] = table.clone(hooktemplate)
     local insertedhook = hooks[#hooks]
     insertedhook.hookname = hookname
     insertedhook.hookfunc = hookfunc
     insertedhook.hookedlib = "ApplicationHandler"
     insertedhook.hookedfunc = "StartProcess"
     insertedhook.after = after
-    if insertedhook.after == nil then insertedhook.after = false end
+    if insertedhook.after == nil then
+        insertedhook.after = false
+    end
     insertedhook.isapp = true
     insertedhook.appname = appname
     checkinternalhook("ApplicationHandler", "StartProcess")
@@ -207,62 +214,62 @@ libhooker.hookapp("Settings", "LibHooker Menu", function(win)
 
     -- Stuff on page
     local safemodestatus = Instance.new("TextLabel", page)
-    safemodestatus.Size = UDim2.fromScale(0.5, 0.5)
-    safemodestatus.Text = "Safe mode status: " .. tostring(safemode)
+    safemodestatus.Size = UDim2.fromScale(0.5,0.5)
+    safemodestatus.Text = "Safe mode status: "..tostring(safemode)
     safemodestatus.TextScaled = true
 
     local safemodetoggle = Instance.new("TextButton", page)
-    safemodetoggle.Size = UDim2.fromScale(0.5, 0.5)
-    safemodetoggle.Position = UDim2.fromScale(0, 0.5)
+    safemodetoggle.Size = UDim2.fromScale(0.5,0.5)
+    safemodetoggle.Position = UDim2.fromScale(0,0.5)
     safemodetoggle.Text = "Toggle safemode"
     safemodetoggle.TextScaled = true
 
     safemodetoggle.MouseButton1Click:Connect(function()
         safemode = not safemode
-        safemodestatus.Text = "Safe mode status: " .. tostring(safemode)
+        safemodestatus.Text = "Safe mode status: "..tostring(safemode)
     end)
 
     local hooksframe = Instance.new("ScrollingFrame", page)
-    hooksframe.Size = UDim2.fromScale(0.5, 1)
-    hooksframe.Position = UDim2.fromScale(0.5, 0)
-
+    hooksframe.Size = UDim2.fromScale(0.5,1)
+    hooksframe.Position = UDim2.fromScale(0.5,0)
+    
     local uilist = Instance.new("UIListLayout", hooksframe)
 
     -- Show LibHooker page on click and populate hooksframe
     function refresh()
-        for _, b in pairs(win.Main.MainMenu.Pages:GetChildren()) do
+        for _,b in pairs(win.Main.MainMenu.Pages:GetChildren()) do
             b.Visible = false
         end
         page.Visible = true
         -- Populate hooksframe
         hooksframe:ClearAllChildren()
         local uilist = Instance.new("UIListLayout", hooksframe)
-        for i, v in pairs(hooks) do
+        for i,v in pairs(hooks) do
             local hookinfo = Instance.new("Frame", hooksframe)
-            hookinfo.Size = UDim2.fromScale(1, 0.1)
+            hookinfo.Size = UDim2.fromScale(1,0.1)
             local hooktext = Instance.new("TextLabel", hookinfo)
-            hooktext.Size = UDim2.fromScale(0.8, 1)
+            hooktext.Size = UDim2.fromScale(0.8,1)
             hooktext.TextScaled = true
             if v.isapp then
-                hooktext.Text = v.hookname .. ", " .. v.appname
+                hooktext.Text = v.hookname..", "..v.appname
             else
-                hooktext.Text = v.hookname .. ", " .. v.hookedlib .. ", " ..
-                                    v.hookedfunc
+                hooktext.Text = v.hookname..", "..v.hookedlib..", "..v.hookedfunc
             end
             local removehook = Instance.new("TextButton", hookinfo)
-            removehook.Size = UDim2.new(0.2, -hooksframe.ScrollBarThickness, 1,
-                                        0)
-            removehook.Position = UDim2.fromScale(0.8, 0)
+            removehook.Size = UDim2.new(0.2, -hooksframe.ScrollBarThickness, 1, 0)
+            removehook.Position = UDim2.fromScale(0.8,0)
             removehook.TextScaled = true
             removehook.Text = "Remove"
-            removehook.TextColor3 = Color3.fromRGB(255, 0, 0)
+            removehook.TextColor3 = Color3.fromRGB(255,0,0)
             removehook.MouseButton1Click:Connect(function()
                 libhooker.unhooklib(v.hookname)
                 refresh()
             end)
         end
     end
-    side.TextButton.MouseButton1Click:Connect(function() refresh() end)
+    side.TextButton.MouseButton1Click:Connect(function()
+        refresh()
+    end)
 end, true)
 
 return libhooker
