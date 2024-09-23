@@ -123,7 +123,7 @@ local function registerhook(lib, funcname, old)
             if not safemode then
                 if v.after then
                     if v.hookedfunc == funcname and v.hookedlib == lib then
-                        if not (v.isapp and args[1] == v.appname) then
+                        if not (v.isapp and args[1] ~= v.appname) then
                             local ret, err = pcall(v.hookfunc, oldreturn, ...)
                             if err then
                                 handleerror(err, funcname)
@@ -192,5 +192,77 @@ function libhooker.unhooklib(name)
     end
     return 1
 end
+
+-- Add a LibHooker menu into settings
+libhooker.hookapp("Settings", "LibHooker Menu", function(win)
+    local side = win.Main.SideMenu.System:Clone()
+    side.Parent = win.Main.SideMenu
+    side.Name = "LibHooker"
+    side.TextLabel.Text = "LibHooker"
+
+    local page = win.Main.MainMenu.Pages.System:Clone()
+    page.Parent = win.Main.MainMenu.Pages
+    page.Name = "LibHooker"
+    page:ClearAllChildren()
+
+    -- Stuff on page
+    local safemodestatus = Instance.new("TextLabel", page)
+    safemodestatus.Size = UDim2.fromScale(0.5, 0.5)
+    safemodestatus.Text = "Safe mode status: " .. tostring(safemode)
+    safemodestatus.TextScaled = true
+
+    local safemodetoggle = Instance.new("TextButton", page)
+    safemodetoggle.Size = UDim2.fromScale(0.5, 0.5)
+    safemodetoggle.Position = UDim2.fromScale(0, 0.5)
+    safemodetoggle.Text = "Toggle safemode"
+    safemodetoggle.TextScaled = true
+
+    safemodetoggle.MouseButton1Click:Connect(function()
+        safemode = not safemode
+        safemodestatus.Text = "Safe mode status: " .. tostring(safemode)
+    end)
+
+    local hooksframe = Instance.new("ScrollingFrame", page)
+    hooksframe.Size = UDim2.fromScale(0.5, 1)
+    hooksframe.Position = UDim2.fromScale(0.5, 0)
+
+    local uilist = Instance.new("UIListLayout", hooksframe)
+
+    -- Show LibHooker page on click and populate hooksframe
+    function refresh()
+        for _, b in pairs(win.Main.MainMenu.Pages:GetChildren()) do
+            b.Visible = false
+        end
+        page.Visible = true
+        -- Populate hooksframe
+        hooksframe:ClearAllChildren()
+        local uilist = Instance.new("UIListLayout", hooksframe)
+        for i, v in pairs(hooks) do
+            local hookinfo = Instance.new("Frame", hooksframe)
+            hookinfo.Size = UDim2.fromScale(1, 0.1)
+            local hooktext = Instance.new("TextLabel", hookinfo)
+            hooktext.Size = UDim2.fromScale(0.8, 1)
+            hooktext.TextScaled = true
+            if v.isapp then
+                hooktext.Text = v.hookname .. ", " .. v.appname
+            else
+                hooktext.Text = v.hookname .. ", " .. v.hookedlib .. ", " ..
+                                    v.hookedfunc
+            end
+            local removehook = Instance.new("TextButton", hookinfo)
+            removehook.Size = UDim2.new(0.2, -hooksframe.ScrollBarThickness, 1,
+                                        0)
+            removehook.Position = UDim2.fromScale(0.8, 0)
+            removehook.TextScaled = true
+            removehook.Text = "Remove"
+            removehook.TextColor3 = Color3.fromRGB(255, 0, 0)
+            removehook.MouseButton1Click:Connect(function()
+                libhooker.unhooklib(v.hookname)
+                refresh()
+            end)
+        end
+    end
+    side.TextButton.MouseButton1Click:Connect(function() refresh() end)
+end, true)
 
 return libhooker
