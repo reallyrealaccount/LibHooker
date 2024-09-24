@@ -288,6 +288,13 @@ if firstTime then
                       "LibHooker compile enviroment hook", envfunc)
     libhooker.hooklib("Executor", "innerRun", "LibHooker run enviroment hook",
                       envfunc)
+
+    -- Inject custom loadlib()
+    local LimeEnv = require(libDir.Kernel.ExecutableHost.EnvTable)()
+    libhookerenv.loadlib = function(name)
+        if name:lower() == "libhooker" then return libhooker end
+        return LimeEnv.loadlib(name)
+    end
 end
 
 return libhooker
